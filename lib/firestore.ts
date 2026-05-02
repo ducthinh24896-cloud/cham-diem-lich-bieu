@@ -1,60 +1,102 @@
-/**
- * Firestore data layer
- * Collection: users/{uid}/entries/{dateKey}
- * dateKey format: "YYYY-MM-DD"
- */
-import {
-  doc, getDoc, getDocs, setDoc, deleteDoc,
-  collection, query, where, orderBy,
-  onSnapshot, Unsubscribe,
-} from "firebase/firestore";
+"use client";
+
 import { db } from "./firebase";
+import {
+  doc,
+  collection,
+  setDoc,
+  deleteDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  Unsubscribe,
+} from "firebase/firestore";
+
 import type { DayEntry, CalendarData } from "./types";
 
+// ✅ helper an toàn
+function getDB() {
+  if (!db) {
+    console.warn("⚠️ Firestore chưa sẵn sàng");
+    return null;
+  }
+  return db;
+}
+
+// ref
 function entryRef(uid: string, dateKey: string) {
-  return doc(db, "users", uid, "entries", dateKey);
+  const _db = getDB();
+  if (!_db) return null;
+  return doc(_db, "users", uid, "entries", dateKey);
 }
 
 function entriesCol(uid: string) {
-  return collection(db, "users", uid, "entries");
+  const _db = getDB();
+  if (!_db) return null;
+  return collection(_db, "users", uid, "entries");
 }
 
-/** Lưu / cập nhật một ngày */
-export async function saveEntry(uid: string, dateKey: string, entry: DayEntry): Promise<void> {
-  await setDoc(entryRef(uid, dateKey), { ...entry, updatedAt: new Date().toISOString() });
+/** Lưu / cập nhật */
+export async function saveEntry(uid: string, dateKey: string, entry: DayEntry) {
+  const ref = entryRef(uid, dateKey);
+  if (!ref) return;
+
+  await setDoc(ref, {
+    ...entry,
+    updatedAt: new Date().toISOString(),
+  });
 }
 
-/** Xóa một ngày */
-export async function deleteEntry(uid: string, dateKey: string): Promise<void> {
-  await deleteDoc(entryRef(uid, dateKey));
+/** Xóa */
+export async function deleteEntry(uid: string, dateKey: string) {
+  const ref = entryRef(uid, dateKey);
+  if (!ref) return;
+
+  await deleteDoc(ref);
 }
 
-/** Lấy toàn bộ entries của user (dùng lần đầu) */
+/** Lấy toàn bộ */
 export async function fetchAllEntries(uid: string): Promise<CalendarData> {
-  const snap = await getDocs(entriesCol(uid));
+  const col = entriesCol(uid);
+  if (!col) return {};
+
+  const snap = await getDocs(col);
   const data: CalendarData = {};
-  snap.forEach((d) => { data[d.id] = d.data() as DayEntry; });
+
+  snap.forEach((d) => {
+    data[d.id] = d.data() as DayEntry;
+  });
+
   return data;
 }
 
-/** Lắng nghe realtime thay đổi trong một tháng cụ thể */
+/** Realtime theo tháng */
 export function subscribeToMonth(
   uid: string,
   year: number,
   month: number,
   callback: (entries: CalendarData) => void
 ): Unsubscribe {
-  const prefix     = `${year}-${String(month + 1).padStart(2, "0")}`;
-  const prefixEnd  = prefix + "\uf8ff";
+  const col = entriesCol(uid);
+  if (!col) return () => {}; // ✅ tránh crash
+
+  const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const prefixEnd = prefix + "\uf8ff";
+
   const q = query(
-    entriesCol(uid),
+    col,
     where("__name__", ">=", prefix),
     where("__name__", "<=", prefixEnd),
     orderBy("__name__")
   );
+
   return onSnapshot(q, (snap) => {
     const data: CalendarData = {};
-    snap.forEach((d) => { data[d.id] = d.data() as DayEntry; });
+    snap.forEach((d) => {
+      data[d.id] = d.data() as DayEntry;
+    });
     callback(data);
   });
 }
