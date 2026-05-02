@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import "./globals.css";
 import { AuthProvider } from "@/lib/Authcontext";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "📋 Lịch Biểu Chấm Điểm Trung Đội",
