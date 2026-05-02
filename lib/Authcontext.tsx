@@ -14,7 +14,7 @@ import { auth } from "./firebase";
 interface AuthCtx {
   user: User | null;
   loading: boolean;
-   loginWithName: (name: string) => Promise<void>;
+  loginWithName: (name: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -23,28 +23,31 @@ interface AuthCtx {
 const Ctx = createContext<AuthCtx>({
   user: null,
   loading: true,
-   loginWithName: async () => {},
+  loginWithName: async () => {},
   login: async () => {},
   register: async () => {},
   logout: async () => {},
 });
 
-
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user,    setUser]    = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // ✅ FIX 1: check auth trước
   useEffect(() => {
+    if (!auth) return;
+
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
     });
-    return unsub;
+
+    return () => unsub();
   }, []);
 
-  // ✅ Đăng nhập chỉ bằng tên
+  // ✅ Đăng nhập bằng tên
   async function loginWithName(name: string) {
+    if (!auth) return;
     if (!name.trim()) {
       alert("Vui lòng nhập tên!");
       return;
@@ -52,28 +55,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const res = await signInAnonymously(auth);
 
-    if (auth.currentUser) {
-      await updateProfile(auth.currentUser, {
+    if (res.user) {
+      await updateProfile(res.user, {
         displayName: name,
       });
     }
   }
 
-
-   // 🔐 LOGIN
+  // 🔐 LOGIN
   async function login(email: string, password: string) {
+    if (!auth) return;
     await signInWithEmailAndPassword(auth, email, password);
   }
 
   async function register(email: string, password: string) {
+    if (!auth) return;
     await createUserWithEmailAndPassword(auth, email, password);
   }
 
   async function logout() {
+    if (!auth) return;
     await signOut(auth);
   }
 
-  return <Ctx.Provider value={{ user, loading, login, loginWithName, register, logout }}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={{ user, loading, login, loginWithName, register, logout }}>
+      {children}
+    </Ctx.Provider>
+  );
 }
 
-export function useAuth() { return useContext(Ctx); }
+export function useAuth() {
+  return useContext(Ctx);
+}
