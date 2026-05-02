@@ -1,0 +1,169 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@700;800;900&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: "Nunito", sans-serif;
+  background: #080818;
+  min-height: 100vh;
+  color: #fff;
+  overflow-x: hidden;
+}
+.bg-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 10%, #ff006655 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 90% 5%, #7c3aed77 0%, transparent 55%),
+    radial-gradient(ellipse 90% 70% at 50% 100%, #0ea5e944 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 60%, #f59e0b33 0%, transparent 50%),
+    radial-gradient(ellipse 50% 40% at 20% 70%, #10b98133 0%, transparent 50%),
+    linear-gradient(160deg, #0d0d1f 0%, #110d2e 50%, #060d1f 100%);
+}
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  animation: orbFloat 8s ease-in-out infinite alternate;
+}
+.orb-1 {
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, #e879f955, transparent 70%);
+  top: -120px;
+  left: -120px;
+  animation-delay: 0s;
+}
+.orb-2 {
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, #06b6d444, transparent 70%);
+  bottom: -160px;
+  right: -120px;
+  animation-delay: -4s;
+}
+.orb-3 {
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, #f9731688, transparent 70%);
+  top: 40%;
+  left: 60%;
+  animation-delay: -2s;
+}
+@keyframes orbFloat {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(30px, 20px) scale(1.15);
+  }
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 300% center;
+  }
+}
+@keyframes todayPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.28);
+  }
+  50% {
+    box-shadow: 0 0 36px rgba(251, 191, 36, 0.55);
+  }
+}
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+.animate-shimmer {
+  animation: shimmer 5s linear infinite;
+}
+.animate-scaleIn {
+  animation: scaleIn 0.3s ease both;
+}
+.animate-fadeUp {
+  animation: fadeUp 0.4s ease both;
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+.today-pulse {
+  animation: todayPulse 2.5s infinite;
+}
+.glass {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.gradient-text {
+  background: linear-gradient(
+    135deg,
+    #fbbf24,
+    #f472b6,
+    #a78bfa,
+    #38bdf8,
+    #34d399
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
