@@ -1,3 +1,5 @@
+ "use client";
+
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
@@ -11,11 +13,17 @@ const firebaseConfig = {
   appId:             process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Tránh khởi tạo nhiều lần trong Next.js dev mode
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+// ✅ CHẶN SERVER
+const isClient = typeof window !== "undefined";
 
-// 🔐 Auth
-export const auth = getAuth(app);
+// ✅ chỉ init khi có key + ở client
+const app =
+  isClient && process.env.NEXT_PUBLIC_FIREBASE_API_KEY
+    ? getApps().length > 0
+      ? getApp()
+      : initializeApp(firebaseConfig)
+    : undefined;
 
-// 🗄️ Firestore
-export const db = getFirestore(app);
+// export an toàn
+export const auth = app ? getAuth(app) : null;
+export const db   = app ? getFirestore(app) : null;
