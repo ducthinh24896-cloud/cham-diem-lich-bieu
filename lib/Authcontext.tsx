@@ -1,84 +1,111 @@
 "use client";
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+
 import {
-  onAuthStateChanged,
-  signOut,
-  User,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInAnonymously,
-  updateProfile,
-} from "firebase/auth";
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+
+import { User, onAuthStateChanged } from "firebase/auth";
+
 import { auth } from "./firebase";
+
+import * as AuthService from "./auth";
+
+type Role = "admin" | "user" | null;
 
 interface AuthCtx {
   user: User | null;
+  role: Role;
   loading: boolean;
-  loginWithName: (name: string) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+
+  login: typeof AuthService.login;
+  register: typeof AuthService.register;
+  loginWithName: typeof AuthService.loginWithName;
+  logout: typeof AuthService.logout;
 }
 
-const Ctx = createContext<AuthCtx>({
-  user: null,
-  loading: true,
-  loginWithName: async () => {},
-  login: async () => {},
-  register: async () => {},
-  logout: async () => {},
-});
+const Ctx = createContext<AuthCtx>({} as AuthCtx);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+export function AuthProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [user, setUser] =
+    useState<User | null>(null);
+
+  const [role, setRole] =
+    useState<Role>(null);
+
+  const [loading, setLoading] =
+    useState(true);
 
   useEffect(() => {
-    if (!auth) return;
-
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
+    if (!auth) {
       setLoading(false);
-    });
+      return;
+    }
+
+    const unsub =
+      onAuthStateChanged(
+        auth,
+        async (u) => {
+          setUser(u);
+
+          // chưa login
+          if (!u) {
+            setRole(null);
+            setLoading(false);
+            return;
+          }
+
+          try {
+            // 🔥 LẤY CUSTOM CLAIMS
+            const token =
+              await u.getIdTokenResult(
+                true
+              );
+
+            if (token.claims.admin) {
+              setRole("admin");
+            } else {
+              setRole("user");
+            }
+          } catch (err) {
+            console.error(
+              "Lỗi claims:",
+              err
+            );
+
+            setRole("user");
+          }
+
+          setLoading(false);
+        }
+      );
 
     return () => unsub();
   }, []);
 
-  // ✅ Đăng nhập bằng tên
-  async function loginWithName(name: string) {
-    if (!auth) return;
-    if (!name.trim()) {
-      alert("Vui lòng nhập tên!");
-      return;
-    }
-
-    const res = await signInAnonymously(auth);
-
-    if (res.user) {
-      await updateProfile(res.user, {
-        displayName: name,
-      });
-    }
-  }
-
-  // 🔐 LOGIN
-  async function login(email: string, password: string) {
-    if (!auth) return;
-    await signInWithEmailAndPassword(auth, email, password);
-  }
-
-  async function register(email: string, password: string) {
-    if (!auth) return;
-    await createUserWithEmailAndPassword(auth, email, password);
-  }
-
-  async function logout() {
-    if (!auth) return;
-    await signOut(auth);
-  }
-
   return (
-    <Ctx.Provider value={{ user, loading, login, loginWithName, register, logout }}>
+    <Ctx.Provider
+      value={{
+        user,
+        role,
+        loading,
+
+        login: AuthService.login,
+        register:
+          AuthService.register,
+        loginWithName:
+          AuthService.loginWithName,
+        logout:
+          AuthService.logout,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );

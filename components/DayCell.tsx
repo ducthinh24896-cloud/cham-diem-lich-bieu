@@ -1,5 +1,10 @@
 "use client";
-import { DayEntry, TD_COLORS, TRUNG_DOIS, isThu5 } from "@/lib/types";
+import {
+  DayEntry,
+  isThu5,
+  DEFAULT_CONFIG,
+
+} from "@/lib/types";
 interface Props {
   day: number;
   year: number;
@@ -130,11 +135,11 @@ export default function DayCell({
             {entry!.grandTotal}
           </span>
           <div className="flex gap-0.5 mt-1 flex-wrap">
-            {TRUNG_DOIS.map((td) => (
+            {DEFAULT_CONFIG.trungDois.map((td) => (
               <div
                 key={td}
                 className="w-1.5 h-1.5 rounded-full"
-                style={{ background: TD_COLORS[td] }}
+                style={{ background: DEFAULT_CONFIG.tdColors[td] }}
               />
             ))}
           </div>

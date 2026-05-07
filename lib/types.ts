@@ -1,27 +1,61 @@
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-export const TRUNG_DOIS = [9, 10, 11, 12] as const;
-export type TrungDoiId = (typeof TRUNG_DOIS)[number];
+// ─────────────────────────────────────────────
+// 🔥 TYPES ĐỘNG TỪ FIREBASE
+// ─────────────────────────────────────────────
 
-export const SCORE_CATEGORIES = [
-  { key: "vs", label: "Nội dung I" },
-  { key: "nv", label: "Nội dung II" },
-  { key: "kl", label: "Nội dung III" },
-  { key: "hd", label: "Nội dung IV" },
-] as const;
-export type ScoreCatKey = (typeof SCORE_CATEGORIES)[number]["key"];
-export const TD_COLORS: Record<TrungDoiId, string> = {
-  9: "#FF6B6B",
-  10: "#34d399",
-  11: "#38bdf8",
-  12: "#fbbf24",
+export type TrungDoiId = number;
+
+export type ScoreCategory = {
+  key: string;
+  label: string;
 };
-export const TD_ICONS: Record<TrungDoiId, string> = {
-  9: "🔴",
-  10: "🟢",
-  11: "🔵",
-  12: "🟡",
+export type ScoreCatKey = string;
+
+// ─────────────────────────────────────────────
+// ⚙️ SYSTEM CONFIG
+// ─────────────────────────────────────────────
+
+export type SystemConfig = {
+  trungDois: TrungDoiId[];
+
+  scoreCategories: ScoreCategory[];
+  
+tdColors: Record<number, string>;
+
+tdIcons: Record<number, string>;
 };
+
+
+
+export const DEFAULT_CONFIG: SystemConfig = {
+  trungDois: [9, 10, 11, 12],
+
+  scoreCategories: [
+    { key: "nd1", label: "Nội dung I" },
+    { key: "nd2", label: "Nội dung II" },
+    { key: "nd3", label: "Nội dung III" },
+    { key: "nd4", label: "Nội dung IV" },
+  ],
+
+  tdColors: {
+    9: "#FF6B6B",
+    10: "#34d399",
+    11: "#38bdf8",
+    12: "#fbbf24",
+  },
+
+  tdIcons: {
+    9: "🔴",
+    10: "🟢",
+    11: "🔵",
+    12: "🟡",
+  },
+};
+
+// ─────────────────────────────────────────────
+// 📅 DATE
+// ─────────────────────────────────────────────
 export const MONTHS_VN = [
   "Tháng 1",
   "Tháng 2",
@@ -36,7 +70,9 @@ export const MONTHS_VN = [
   "Tháng 11",
   "Tháng 12",
 ];
+
 export const DAYS_VN = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+
 export const DAYS_FULL = [
   "Chủ nhật",
   "Thứ hai",
@@ -46,48 +82,150 @@ export const DAYS_FULL = [
   "Thứ sáu",
   "Thứ bảy",
 ];
-export type TrungDoiScores = Partial<Record<ScoreCatKey, number>>;
+// ─────────────────────────────────────────────
+// 📊 SCORE TYPES
+// ─────────────────────────────────────────────
+
+export type TrungDoiScores = Record<string, number>;
+
 export type DayEntry = {
   nhanxet: string;
+
   uudiem: string;
+
   khuyetdiem: string;
+
   bieuduong: string;
-  scores: Partial<Record<TrungDoiId, TrungDoiScores>>;
+
+  scores: Partial<Record<number, TrungDoiScores>>;
+
   grandTotal: number;
+
   isT5: boolean;
 
-  createdAt: string;   // 🟢 bắt buộc (lần đầu)
-  updatedAt: string;   // 🟢 lần sửa gần nhất
-  editReason?: string; // 🟡 chỉ có khi sửa
+  createdAt: string;
+
+  updatedAt: string;
+
+  editReason?: string;
+
+  updatedBy?: string;
 };
 
-
 export type CalendarData = Record<string, DayEntry>;
+
+// ─────────────────────────────────────────────
+// 📅 DATE HELPERS
+// ─────────────────────────────────────────────
+
 export function pad(n: number) {
   return String(n).padStart(2, "0");
 }
-export function dateKey(y: number, m: number, d: number) {
+
+export function dateKey(
+  y: number,
+  m: number,
+  d: number
+) {
   return `${y}-${pad(m + 1)}-${pad(d)}`;
 }
-export function isThu5(y: number, m: number, d: number) {
+
+
+export function isThu5(
+  y: number,
+  m: number,
+  d: number
+) {
   return new Date(y, m, d).getDay() === 4;
 }
-export function calcTdAvg(scores: TrungDoiScores) {
-  return (
-    SCORE_CATEGORIES.map((c) => scores[c.key] ?? 0).reduce((a, b) => a + b, 0) /
-    SCORE_CATEGORIES.length
-  );
-}
-export function calcGrandTotal(
-  allScores: Partial<Record<TrungDoiId, TrungDoiScores>>,
-  isT5: boolean,
+
+export function getDaysInMonth(
+  y: number,
+  m: number
 ) {
-  const mult = isT5 ? 0.6 : 0.4;
-  const avgs = TRUNG_DOIS.map((td) => calcTdAvg(allScores[td] ?? {}));
+  return new Date(y, m + 1, 0).getDate();
+}
+
+export function getMonthStartOffset(
+  y: number,
+  m: number
+) {
+  const d = new Date(y, m, 1).getDay();
+
+  return d === 0 ? 6 : d - 1;
+}
+
+
+// ─────────────────────────────────────────────
+// 📊 TÍNH ĐIỂM
+// ─────────────────────────────────────────────
+
+
+export function calcTdAvg(
+  scores: TrungDoiScores = {},
+  categories: ScoreCategory[]
+) {
+  let total = 0;
+
+  categories.forEach((cat, index) => {
+    const value = scores[cat.key] ?? 0;
+
+    const weight =
+      index === 0 || index === 1
+        ? 0.3
+        : 0.2;
+
+    total += value * weight;
+  });
+
+  return parseFloat(total.toFixed(2));
+}
+
+export function calcGrandTotal(
+  allScores: Partial<Record<number, TrungDoiScores>>,
+  trungDois: number[],
+  categories: ScoreCategory[]
+) {
+  if (!trungDois.length) return 0;
+
+  const avgs = trungDois.map((td) =>
+    calcTdAvg(
+      allScores[td] ?? {},
+      categories
+    )
+  );
+
   return parseFloat(
-    ((avgs.reduce((a, b) => a + b, 0) / avgs.length) * mult).toFixed(2),
+    (
+      avgs.reduce((a, b) => a + b, 0) /
+      avgs.length
+    ).toFixed(2)
   );
 }
+
+export function calcWeekScore(
+  normalDays: number[],
+  thu5Score: number
+) {
+  const avgNormal =
+    normalDays.length > 0
+      ? normalDays.reduce((a, b) => a + b, 0) /
+        normalDays.length
+      : 0;
+
+  return parseFloat(
+    (
+      avgNormal * 0.4 +
+      thu5Score * 0.6
+    ).toFixed(2)
+  );
+}
+
+
+// ─────────────────────────────────────────────
+// 🎨 UI
+// ─────────────────────────────────────────────
+
 export function scoreColor(v: number) {
   return v >= 8
     ? "#34d399"
@@ -96,11 +234,4 @@ export function scoreColor(v: number) {
       : v >= 4
         ? "#fb923c"
         : "#f87171";
-}
-export function getDaysInMonth(y: number, m: number) {
-  return new Date(y, m + 1, 0).getDate();
-}
-export function getMonthStartOffset(y: number, m: number) {
-  const d = new Date(y, m, 1).getDay();
-  return d === 0 ? 6 : d - 1;
 }

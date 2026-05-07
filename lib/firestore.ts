@@ -39,14 +39,36 @@ function entriesCol(uid: string) {
 }
 
 /** Lưu / cập nhật */
-export async function saveEntry(uid: string, dateKey: string, entry: DayEntry) {
-  const ref = entryRef(uid, dateKey);
+export async function saveEntry(
+  uid: string,
+  dateKey: string,
+  entry: DayEntry
+) {
+  const ref = entryRef(
+    uid,
+    dateKey
+  );
+
   if (!ref) return;
 
-  await setDoc(ref, {
-    ...entry,
-    updatedAt: new Date().toISOString(),
-  });
+  const now =
+    new Date().toISOString();
+
+  await setDoc(
+    ref,
+    {
+      ...entry,
+
+      createdAt:
+        entry.createdAt ??
+        now,
+
+      updatedAt: now,
+    },
+    {
+      merge: true,
+    }
+  );
 }
 
 /** Xóa */
@@ -92,11 +114,20 @@ export function subscribeToMonth(
     orderBy("__name__")
   );
 
-  return onSnapshot(q, (snap) => {
+ return onSnapshot(
+  q,
+  (snap) => {
     const data: CalendarData = {};
+
     snap.forEach((d) => {
       data[d.id] = d.data() as DayEntry;
     });
+
     callback(data);
-  });
+  },
+
+  (err) => {
+    console.error("FIRESTORE ERROR:", err);
+  }
+);
 }

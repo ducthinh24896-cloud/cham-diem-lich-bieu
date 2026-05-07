@@ -7,6 +7,7 @@ import {
   dateKey,
   getDaysInMonth,
   getMonthStartOffset,
+  isThu5,
 } from "@/lib/types";
 import { getHolidays, isOffDay } from "@/lib/holidays";
 import { saveEntry, deleteEntry, subscribeToMonth } from "@/lib/firestore";
@@ -16,6 +17,14 @@ import DayCell from "./DayCell";
 import DayModal from "./DayModal";
 import Legend from "./Legend";
 import { useRouter } from "next/navigation";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  deleteDoc,
+} from "firebase/firestore";
+
+import { db } from "@/lib/firebase";
 import { Loader2 } from "lucide-react";
 
 export default function CalendarPage() {
@@ -27,13 +36,13 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [modal, setModal] = useState<{ day: number } | null>(null);
-const router = useRouter();
+  const router = useRouter();
 
-useEffect(() => {
-  if (!loading && !user) {
-    router.push("/login"); // 👉 chuyển sang trang login
-  }
-}, [user, loading]);
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login"); // 👉 chuyển sang trang login
+    }
+  }, [user, loading]);
 
   const holidays = useMemo(
     () => ({
@@ -45,18 +54,18 @@ useEffect(() => {
   );
 
   // Realtime Firestore subscription per month
-useEffect(() => {
-  setLoading(true);
+  useEffect(() => {
+    setLoading(true);
 
-  const uid = user?.uid || "public"; // 👈 dùng chung 1 id
+    const uid = user?.uid || "public"; // 👈 dùng chung 1 id
 
-  const unsub = subscribeToMonth(uid, year, month, (entries) => {
-    setData((prev) => ({ ...prev, ...entries }));
-    setLoading(false);
-  });
+    const unsub = subscribeToMonth(uid, year, month, (entries) => {
+      setData((prev) => ({ ...prev, ...entries }));
+      setLoading(false);
+    });
 
-  return () => unsub();
-}, [user, year, month]);
+    return () => unsub();
+  }, [user, year, month]);
 
   const changeMonth = useCallback((dir: -1 | 1) => {
     setMonth((m) => {
@@ -78,27 +87,26 @@ useEffect(() => {
     setYear(now.getFullYear());
   }, []);
 
+  const handleSave = useCallback(
+    async (entry: DayEntry) => {
+      if (!user || !modal) {
+        alert("⚠️ Cần đăng nhập để lưu!");
+        return;
+      }
 
-const handleSave = useCallback(
-  async (entry: DayEntry) => {
-    if (!user || !modal) {
-      alert("⚠️ Cần đăng nhập để lưu!");
-      return;
-    }
+      setSaving(true);
+      try {
+        const key = dateKey(year, month, modal.day);
 
-    setSaving(true);
-    try {
-      const key = dateKey(year, month, modal.day);
+        await saveEntry(user.uid, key, entry); // 👈 QUAN TRỌNG
 
-      await saveEntry(user.uid, key, entry); // 👈 QUAN TRỌNG
-
-      setData((prev) => ({ ...prev, [key]: entry }));
-    } finally {
-      setSaving(false);
-    }
-  },
-  [user, modal, year, month],
-);
+        setData((prev) => ({ ...prev, [key]: entry }));
+      } finally {
+        setSaving(false);
+      }
+    },
+    [user, modal, year, month],
+  );
 
   const handleDelete = useCallback(async () => {
     if (!user || !modal) return;
@@ -161,6 +169,59 @@ const handleSave = useCallback(
 
   const isCurrentMonth = month === now.getMonth() && year === now.getFullYear();
 
+function getWeekData(
+  year: number,
+  month: number,
+  day: number,
+  data: CalendarData,
+  holidays: any
+): DayEntry[] {
+  const date = new Date(year, month, day);
+
+  // 👉 tìm thứ 5
+  const diff = 4 - date.getDay();
+  const thu5 = new Date(date);
+  thu5.setDate(date.getDate() + diff);
+
+  const result: DayEntry[] = [];
+
+  for (let i = -6; i <= 0; i++) {
+    const d = new Date(thu5);
+    d.setDate(thu5.getDate() + i);
+
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    const dd = d.getDate();
+
+    const key = dateKey(y, m, dd);
+
+    // ❌ bỏ chủ nhật
+    if (d.getDay() === 0) continue;
+
+    // ❌ bỏ ngày lễ
+    const off = isOffDay(y, m, dd, holidays);
+    if (off.off) continue;
+
+    // ❌ bỏ chính thứ 5 (tính riêng)
+    if (i === 0) continue;
+
+    if (data[key]) {
+      result.push(data[key]);
+    }
+  }
+
+  return result;
+}
+
+function makeId(
+  year: number,
+  month: number,
+  day: number
+) {
+  return `${year}-${month + 1}-${day}`;
+}
+
+
   return (
     <div className="min-h-screen py-5 px-3 relative z-10">
       <div className="max-w-4xl mx-auto">
@@ -179,16 +240,13 @@ const handleSave = useCallback(
             Lịch Biểu Chấm Điểm Trung Đội
           </h1>
           <p className="text-white/38 text-sm">
-           Hệ thống theo dõi, đánh giá chất lượng thực hiện nhiệm vụ của các trung đội
+            Hệ thống theo dõi, đánh giá chất lượng thực hiện nhiệm vụ của các
+            trung đội
           </p>
           <p className="text-white/22 text-xs mt-1">
-         Thực hiện theo quy định ngày công tác, không chấm điểm ngày nghỉ · ☁️ Dữ liệu được quản lý, lưu trữ trên nền tảng số
+            Thực hiện theo quy định ngày công tác, không chấm điểm ngày nghỉ ·
+            ☁️ Dữ liệu được quản lý, lưu trữ trên nền tảng số
           </p>
-          {/* {user && (
-            <p className="text-white/28 text-xs mt-1">
-              👤 {user.displayName || user.email}
-            </p>
-          )} */}
         </div>
 
         <div className="animate-fadeUp" style={{ animationDelay: "0.05s" }}>
@@ -253,9 +311,14 @@ const handleSave = useCallback(
                   kind={cell.kind}
                   entry={isCur && !offInfo.off ? data[key] : undefined}
                   offReason={offInfo.off ? offInfo.reason : undefined}
-                  onClick={() =>
-                    isCur && !offInfo.off && setModal({ day: cell.day })
-                  }
+                  onClick={() => {
+                    console.log("CLICK", cell.day);
+
+                    if (!isCur || offInfo.off) return;
+                    setModal({
+                      day: cell.day,
+                    });
+                  }}
                 />
               );
             })}
@@ -315,7 +378,6 @@ const handleSave = useCallback(
           ))}
         </div>
       </div>
-
       {modal && (
         <DayModal
           year={year}
@@ -323,6 +385,7 @@ const handleSave = useCallback(
           day={modal.day}
           entry={data[dateKey(year, month, modal.day)]}
           saving={saving}
+          weekData={getWeekData(year, month, modal.day, data, holidays)}// 👈 QUAN TRỌNG
           onClose={() => setModal(null)}
           onSave={handleSave}
           onDelete={handleDelete}

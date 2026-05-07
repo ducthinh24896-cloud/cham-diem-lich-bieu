@@ -2,30 +2,53 @@
 import { useAuth } from "@/lib/Authcontext";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 export default function LoginPage() {
-  const { user, loading, login } = useAuth();
+  const { user, role, loading, login } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-const [name, setName] = useState("");
   const [error, setError] = useState("");
 
   // 👉 nếu đã login → về trang chính
   useEffect(() => {
-    if (!loading && user) {
+    if (loading) return;
+
+    if (user && role === "user") {
       router.push("/");
+    } else if (user && role === "admin") {
+      router.push("/admin");
     }
-  }, [user, loading, router]);
+  }, [user, role, loading, router]);
 
   // 👉 xử lý login
   async function handleLogin() {
-    setError("");
     try {
-      await login(email, password);
-    } catch (e) {
-      setError("❌ Sai tài khoản hoặc mật khẩu!");
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+
+      const token = await cred.user.getIdToken();
+
+      // save cookie
+      await fetch("/api/session", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          token,
+        }),
+      });
+
+      window.location.href = "/admin";
+    } catch (err) {
+      console.error(err);
+
+      alert("Sai tài khoản");
     }
   }
 
@@ -42,14 +65,9 @@ const [name, setName] = useState("");
       <div className="glass rounded-3xl p-10 text-center w-full max-w-[420px]">
         <div className="text-6xl mb-4">📋</div>
 
-        <h1 className="text-3xl font-black mb-2">
-          Lịch Biểu Chấm Điểm
-        </h1>
+        <h1 className="text-3xl font-black mb-2">Lịch Biểu Chấm Điểm</h1>
 
-        <p className="text-white/40 text-sm mb-6">
-          Trung đội 9 · 10 · 11 · 12<br />
-          Đăng nhập để bắt đầu
-        </p>
+        <p className="text-white/40 text-sm mb-6">Form Đăng nhập</p>
 
         {/* EMAIL */}
         <input
@@ -77,9 +95,7 @@ const [name, setName] = useState("");
         />
 
         {/* ERROR */}
-        {error && (
-          <div className="text-red-400 text-sm mb-3">{error}</div>
-        )}
+        {error && <div className="text-red-400 text-sm mb-3">{error}</div>}
 
         {/* BUTTON LOGIN */}
         <button
@@ -93,10 +109,6 @@ const [name, setName] = useState("");
         >
           Đăng nhập
         </button>
-
-        <p className="text-white/20 text-xs mt-6">
-          🔒 Bảo mật bằng Firebase Authentication
-        </p>
       </div>
     </div>
   );
