@@ -33,7 +33,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ FIX 1: check auth trước
   useEffect(() => {
     if (!auth) return;
 
