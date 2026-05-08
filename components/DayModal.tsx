@@ -9,6 +9,7 @@ import {
   isThu5,
   scoreColor,
   calcGrandTotal,
+  TrungDoi,
 } from "@/lib/types";
 
 import { useSystemConfig } from "@/lib/SystemConfigContext";
@@ -28,18 +29,20 @@ interface Props {
   onSave: (e: DayEntry) => Promise<void>;
   onDelete: () => Promise<void>;
 }
+
+
 function emptyScores(
-  trungDois: number[]
-): Record<number, TrungDoiScores> {
-  const s: Record<number, TrungDoiScores> = {};
+  trungDois: TrungDoi[]
+): Record<string, TrungDoiScores> {
+
+  const s: Record<string, TrungDoiScores> = {};
 
   trungDois.forEach((td) => {
-    s[td] = {};
+    s[td.id] = {};
   });
 
   return s;
 }
-
 export default function DayModal({
   year,
   month,
@@ -68,13 +71,14 @@ export default function DayModal({
   const [khuyetdiem, setKhuyetdiem] = useState(entry?.khuyetdiem ?? "");
   const [bieuduong, setBieuduong] = useState(entry?.bieuduong ?? "");
   const [editReason, setEditReason] = useState("");
-  const [scores, setScores] = useState<
-    Partial<Record<TrungDoiId, TrungDoiScores>>
-  >(
+const [scores, setScores] = useState<
+  Partial<Record<string, TrungDoiScores>>
+>(
   entry?.scores
     ? { ...entry.scores }
     : emptyScores(trungDois)
 );
+
   useEffect(() => {
     if (entry && mode === "view") {
       setNhanxet(entry.nhanxet);
@@ -83,9 +87,6 @@ export default function DayModal({
       setScores({ ...entry.scores });
     }
   }, [entry, mode]);
-  useEffect(() => {
-  console.log("weekData:", weekData);
-}, [weekData]);
   const isValid = (() => {
     // bắt buộc nhập text
     if (!nhanxet.trim()) return false;
@@ -95,7 +96,7 @@ export default function DayModal({
 
     // bắt buộc nhập điểm tất cả trung đội + tất cả tiêu chí
    for (const td of trungDois) {
-      const tdScores = scores[td];
+      const tdScores = scores[td.id];
       if (!tdScores) return false;
 
     for (const cat of scoreCategories) {
@@ -109,6 +110,7 @@ export default function DayModal({
     return true;
   })();
 
+
   // const grandTotal = calcGrandTotal(scores, isT5),
 const grandTotal = calcGrandTotal(
   scores,
@@ -119,7 +121,7 @@ const grandTotal = calcGrandTotal(
 
   // ✅ RANKING NGÀY
   const dayRanking = trungDois.map((td) => {
-    const s = scores[td] ?? {};
+    const s = scores[td.id] ?? {};
 
    const avg = scoreCategories.reduce(
   (total, cat, index) => {
@@ -139,15 +141,18 @@ const grandTotal = calcGrandTotal(
     return { td, avg };
   }).sort((a, b) => b.avg - a.avg);
 
+
   // 👉 map để lấy rank nhanh
-  const rankMap: Record<number, number> = {};
+  const rankMap: Record<string, number> = {};
   dayRanking.forEach((r, i) => {
-    rankMap[r.td] = i;
+    rankMap[r.td.id] = i;
   });
+
 
   // ✅ RANKING TUẦN (chỉ khi là thứ 5)
 const weekRanking = (() => {
   if (!isT5 || !weekData) return [];
+
 
   return trungDois.map((td) => {
     // 👉 TB ngày thường (đã lọc sẵn)
@@ -155,7 +160,7 @@ const weekRanking = (() => {
       weekData.length === 0
         ? 0
         : weekData.reduce((sum, d) => {
-            const s = d.scores?.[td] ?? {};
+           const s = scores?.[td.id] ?? {};
             return (
               sum +
               ((s.nd1 ?? 0) * 0.3 +
@@ -165,9 +170,10 @@ const weekRanking = (() => {
             );
           }, 0) / weekData.length;
 
+
     // 👉 điểm thứ 5 (chính ngày đang mở modal)
     const t5Score = (() => {
-      const s = scores[td] ?? {};
+      const s = scores[td.id] ?? {};
       return (
         (s.nd1 ?? 0) * 0.3 +
         (s.nd2 ?? 0) * 0.3 +
@@ -188,18 +194,7 @@ const weekRanking = (() => {
   }).sort((a, b) => b.tongDiem - a.tongDiem);
 })();
 
-  // const ranking = TRUNG_DOIS.map((td) => {
-  //   const s = scores[td] ?? {};
 
-  //   const avg =
-  //     ((s.nd1 ?? 0) * 0.3 +
-  //       (s.nd2 ?? 0) * 0.3 +
-  //       (s.nd3 ?? 0) * 0.2 +
-  //       (s.nd4 ?? 0) * 0.2) /
-  //     4;
-
-  //   return { td, avg };
-  // }).sort((a, b) => b.avg - a.avg);
 
   
   function handleScoreChange(td: TrungDoiId, key: string, val: number) {
@@ -263,31 +258,7 @@ const weekRanking = (() => {
     border: "1px solid rgba(255,255,255,0.13)",
     pointerEvents: ro ? ("none" as const) : ("auto" as const),
   });
-  // const tableData = TRUNG_DOIS.map((td) => {
-  //   const s = scores[td] ?? {};
-
-  //   const mt1 = s.nd1 ?? 0;
-  //   const mt2 = s.nd2 ?? 0;
-  //   const mt3 = s.nd3 ?? 0;
-  //   const mt4 = s.nd4 ?? 0;
-
-  //   const diem = mt1 * 0.3 + mt2 * 0.3 + mt3 * 0.2 + mt4 * 0.2;
-
-  //   // 👉 xếp loại (bạn chỉnh lại nếu có quy định riêng)
-  //   let xeploai = "C";
-  //   if (diem >= 9) xeploai = "A";
-  //   else if (diem >= 8) xeploai = "B";
-
-  //   return {
-  //     td,
-  //     mt1,
-  //     mt2,
-  //     mt3,
-  //     mt4,
-  //     diem,
-  //     xeploai,
-  //   };
-  // });
+;
 
   return (
     <div className="rounded-2xl p-4 border border-white/10">
@@ -488,18 +459,18 @@ const weekRanking = (() => {
                 {/* BODY */}
                 <tbody>
                   {trungDois.map((td, idx) => {
-                    const s = scores[td] ?? {};
+                    const s = scores[td.id] ?? {};
 
                     const avg =
                       (s.nd1 ?? 0) * 0.3 +
                       (s.nd2 ?? 0) * 0.3 +
                       (s.nd3 ?? 0) * 0.2 +
                       (s.nd4 ?? 0) * 0.2;
-                    const rank = rankMap[td];
+                   const rank = rankMap[td.id];
 
                     return (
                       <tr
-                        key={td}
+                        key={td.id}
                         className="transition-all"
                         style={{
                           background:
@@ -510,8 +481,8 @@ const weekRanking = (() => {
                       >
                         {/* TD NAME */}
                         <td className="py-3 font-bold text-sm">
-                          <span style={{ color: tdColors?.[td] ?? "#fff" }}>
-  {tdIcons?.[td] ?? "⚪"} TD {td}
+                          <span style={{ color: tdColors?.[td.id] ?? "#fff" }}>
+  {tdIcons?.[td.id] ?? "⚪"} {td.name}
 </span>
                         </td>
 
@@ -524,7 +495,7 @@ const weekRanking = (() => {
                               readOnly={readOnly}
                               onChange={(e) =>
                                 handleScoreChange(
-                                  td,
+                                  td.id,
                                   cat.key,
                                   parseFloat(e.target.value) || 0,
                                 )
@@ -600,9 +571,9 @@ const weekRanking = (() => {
 
                   <tbody>
                     {weekRanking.map((r, idx) => (
-                      <tr key={r.td} className="text-center border">
+                      <tr key={r.td.id} className="text-center border">
                         <td className="p-2 border font-bold">
-                          Trung đội {r.td}
+                          Trung đội {r.td.name}
                         </td>
                         <td className="p-2 border">{r.normalAvg.toFixed(2)}</td>
                         <td className="p-2 border">{r.t5Avg.toFixed(2)}</td>

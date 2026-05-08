@@ -2,7 +2,11 @@
 
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -18,4 +22,11 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
 // ✅ KHÔNG BAO GIỜ NULL
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const db =
+  initializeFirestore(app, {
+    localCache:
+      persistentLocalCache({
+        tabManager:
+          persistentMultipleTabManager(),
+      }),
+  });

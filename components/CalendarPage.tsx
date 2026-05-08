@@ -312,7 +312,7 @@ function makeId(
                   entry={isCur && !offInfo.off ? data[key] : undefined}
                   offReason={offInfo.off ? offInfo.reason : undefined}
                   onClick={() => {
-                    console.log("CLICK", cell.day);
+                    // console.log("CLICK", cell.day);
 
                     if (!isCur || offInfo.off) return;
                     setModal({

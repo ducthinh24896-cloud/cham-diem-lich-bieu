@@ -4,7 +4,11 @@
 // 🔥 TYPES ĐỘNG TỪ FIREBASE
 // ─────────────────────────────────────────────
 
-export type TrungDoiId = number;
+export type TrungDoi = {
+  id: string;
+  name: string;
+};
+export type TrungDoiId = string;
 
 export type ScoreCategory = {
   key: string;
@@ -17,20 +21,36 @@ export type ScoreCatKey = string;
 // ─────────────────────────────────────────────
 
 export type SystemConfig = {
-  trungDois: TrungDoiId[];
+  trungDois: TrungDoi[];
 
   scoreCategories: ScoreCategory[];
   
-tdColors: Record<number, string>;
+tdColors: Record<string, string>;
 
-tdIcons: Record<number, string>;
+  tdIcons: Record<string, string>;
 };
 
 
 
 export const DEFAULT_CONFIG: SystemConfig = {
-  trungDois: [9, 10, 11, 12],
-
+trungDois: [
+  {
+    id: "td9",
+    name: "Trung đội 9",
+  },
+  {
+    id: "td10",
+    name: "Trung đội 10",
+  },
+  {
+    id: "td11",
+    name: "Trung đội 11",
+  },
+  {
+    id: "td12",
+    name: "Trung đội 12",
+  },
+],
   scoreCategories: [
     { key: "nd1", label: "Nội dung I" },
     { key: "nd2", label: "Nội dung II" },
@@ -39,17 +59,17 @@ export const DEFAULT_CONFIG: SystemConfig = {
   ],
 
   tdColors: {
-    9: "#FF6B6B",
-    10: "#34d399",
-    11: "#38bdf8",
-    12: "#fbbf24",
+    "td9": "#FF6B6B",
+    "td10": "#34d399",
+    "td11": "#38bdf8",
+    "td12": "#fbbf24",
   },
 
   tdIcons: {
-    9: "🔴",
-    10: "🟢",
-    11: "🔵",
-    12: "🟡",
+    "td9": "🔴",
+    "td10": "🟢",
+    "td11": "🔵",
+    "td12": "🟡",
   },
 };
 
@@ -97,7 +117,7 @@ export type DayEntry = {
 
   bieuduong: string;
 
-  scores: Partial<Record<number, TrungDoiScores>>;
+  scores: Partial<Record<string, TrungDoiScores>>;
 
   grandTotal: number;
 
@@ -182,15 +202,15 @@ export function calcTdAvg(
 }
 
 export function calcGrandTotal(
-  allScores: Partial<Record<number, TrungDoiScores>>,
-  trungDois: number[],
+  allScores: Partial<Record<string, TrungDoiScores>>,
+  trungDois: TrungDoi[],
   categories: ScoreCategory[]
 ) {
   if (!trungDois.length) return 0;
 
   const avgs = trungDois.map((td) =>
     calcTdAvg(
-      allScores[td] ?? {},
+      allScores[td.id] ?? {},
       categories
     )
   );

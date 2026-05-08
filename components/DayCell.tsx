@@ -137,9 +137,9 @@ export default function DayCell({
           <div className="flex gap-0.5 mt-1 flex-wrap">
             {DEFAULT_CONFIG.trungDois.map((td) => (
               <div
-                key={td}
+                key={td.id}
                 className="w-1.5 h-1.5 rounded-full"
-                style={{ background: DEFAULT_CONFIG.tdColors[td] }}
+                style={{ background: DEFAULT_CONFIG.tdColors[td.id] }}
               />
             ))}
           </div>
